@@ -2,15 +2,16 @@
 
 import psutil
 import time
+import os
 from rich.console import Console
 from rich.table import Table
 
-
 console = Console()
-laravel_servers = {} 
 
-def get_laravel_servers(): 
-    global laravel_servers
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def get_laravel_servers():
     current_servers = {}
 
     for conn in psutil.net_connections(kind='inet'):
@@ -34,34 +35,30 @@ def get_laravel_servers():
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
 
-    for pid, server in current_servers.items():
-        if pid not in laravel_servers:
-            laravel_servers[pid] = server
-            console.print(f"[green]Server Laravel baru terdeteksi:[/green] PID: {server['pid']}, IP: {server['ip']}, Port: {server['port']}")
+    return current_servers
 
-    for pid in list(laravel_servers.keys()):
-        if pid not in current_servers:
-            console.print(f"[red]Server Laravel berhenti:[/red] PID: {laravel_servers[pid]['pid']}, Port: {laravel_servers[pid]['port']}")
-            del laravel_servers[pid]
+def display_table(laravel_servers):
+    clear_screen()
 
-def display_table():
-    table = Table(title="Server Laravel yang Berjalan")
+    table = Table(title="List Running Laravel Servers")
 
     table.add_column("PID", justify="right", style="cyan")
     table.add_column("IP Address", style="magenta")
     table.add_column("Port", justify="right", style="yellow")
     table.add_column("Process", style="green")
 
-    for server in laravel_servers.values():
-        table.add_row(str(server['pid']), server['ip'], str(server['port']), server['process'])
+    if laravel_servers:
+        for server in laravel_servers.values():
+            table.add_row(str(server['pid']), server['ip'], str(server['port']), server['process'])
+    else:
+        table.add_row("[dim]No Laravel Server detected[/dim]", "", "", "")
 
-    console.clear()
     console.print(table)
 
 if __name__ == "__main__":
-    console.print("[bold yellow]Mendeteksi server Laravel yang berjalan... (Tekan Ctrl+C untuk keluar)[/bold yellow]\n")
+    console.print("[bold yellow]Detecting runing Laravel servers... (Press Ctrl+C to quit)[/bold yellow]\n")
 
     while True:
-        get_laravel_servers()
-        display_table()
-        time.sleep(60)
+        laravel_servers = get_laravel_servers()
+        display_table(laravel_servers) 
+        time.sleep(5) 
